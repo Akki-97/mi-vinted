@@ -1,0 +1,614 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mi Vinted</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --azul:#007782;--azul-hondo:#005b63;--azul-palido:#e6f2f2;
+  --fondo:#f7f4ee;--papel:#fff;--tile:#efe9dd;--linea:#e8e1d4;--linea-fuerte:#d8cfbf;
+  --tinta:#1f2328;--suave:#6b6459;--icono:#b3a891;
+  --ok:#2f6b3a;--ok-fondo:#eaf3ea;--mal:#9f2f2d;--mal-fondo:#fbeceb;--aviso:#8a5c00;--aviso-fondo:#fbf3db;
+  --sans:'Onest','Helvetica Neue',Arial,sans-serif;
+  --curva:cubic-bezier(.16,1,.3,1);
+}
+*{box-sizing:border-box}
+html{accent-color:var(--azul);scrollbar-color:var(--linea-fuerte) transparent}
+::selection{background:var(--azul-palido);color:var(--azul-hondo)}
+body{margin:0;font:15px/1.55 var(--sans);background:var(--fondo);color:var(--tinta);padding-bottom:84px;-webkit-font-smoothing:antialiased}
+[hidden]{display:none!important}
+:focus-visible{outline:2px solid var(--azul);outline-offset:2px}
+
+/* Cabecera y navegación */
+header{position:sticky;top:0;z-index:6;background:var(--papel);border-bottom:1px solid var(--linea);height:56px;padding:0 20px;display:flex;align-items:center;gap:10px}
+.logo{width:28px;height:28px;border-radius:7px;background:var(--azul);color:#fff;display:grid;place-items:center;flex:none}
+.logo svg{width:18px;height:18px}
+header h1{font:600 1.05rem/1 var(--sans);letter-spacing:-.01em;margin:0;white-space:nowrap}
+header .sub{color:var(--suave);font-size:.8rem;margin-left:auto;font-variant-numeric:tabular-nums;white-space:nowrap}
+@media (max-width:520px){header .sub{display:none}}
+nav{position:fixed;bottom:0;left:0;right:0;z-index:6;background:var(--papel);border-top:1px solid var(--linea);display:flex;padding-bottom:env(safe-area-inset-bottom)}
+nav button{flex:1;border:0;background:none;padding:9px 4px 11px;font:500 .72rem/1.2 var(--sans);color:var(--suave);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;transition:color .15s}
+nav svg{width:22px;height:22px}
+nav button:hover{color:var(--tinta)}
+nav button[aria-current=true]{color:var(--azul)}
+@media (min-width:800px){
+  body{padding-bottom:40px}
+  nav{position:sticky;top:56px;bottom:auto;justify-content:flex-start;gap:4px;border-top:0;border-bottom:1px solid var(--linea);padding:0 12px}
+  nav button{flex:0 0 auto;flex-direction:row;gap:8px;padding:13px 12px;font-size:.875rem;border-bottom:2px solid transparent;margin-bottom:-1px}
+  nav svg{width:18px;height:18px}
+  nav button[aria-current=true]{border-bottom-color:var(--azul);color:var(--tinta)}
+}
+main{max-width:1120px;margin:0 auto;padding:20px 16px}
+@media (min-width:800px){main{padding:28px 24px}}
+
+/* Encabezado de cada pantalla */
+.cabecera-vista{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:18px}
+.cabecera-vista h2{margin:0}
+.cabecera-vista .nota{margin-top:2px}
+h2{font:600 1.35rem/1.25 var(--sans);letter-spacing:-.015em;margin:0 0 14px}
+h3{font:600 1rem/1.3 var(--sans);margin:32px 0 12px}
+
+/* Barra de herramientas */
+.herramientas{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:18px}
+.herramientas input,.herramientas select{margin:0;width:auto}
+.herramientas input[type=search]{flex:1 1 220px;min-width:0;padding-left:34px;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b6459' stroke-width='1.8' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='6.5'/%3E%3Cpath d='m16 16 4 4'/%3E%3C/svg%3E") no-repeat 11px center/16px}
+.segmentos{display:inline-flex;background:var(--tile);border-radius:8px;padding:3px}
+.segmentos button{border:0;background:none;border-radius:6px;padding:6px 12px;font:500 .82rem var(--sans);color:var(--suave);cursor:pointer;transition:background .15s,color .15s}
+.segmentos button:hover{color:var(--tinta)}
+.segmentos button[aria-pressed=true]{background:var(--papel);color:var(--tinta);box-shadow:0 1px 2px rgba(31,35,40,.08)}
+.chip{border:1px solid var(--linea);background:var(--papel);border-radius:6px;padding:6px 12px;font:500 .8rem var(--sans);color:var(--suave);cursor:pointer;transition:border-color .15s,color .15s}
+.chip:hover{border-color:var(--linea-fuerte);color:var(--tinta)}
+.fila{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+
+/* Botones */
+.boton{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--azul);border-radius:8px;background:var(--azul);color:#fff;padding:9px 16px;font:600 .875rem var(--sans);cursor:pointer;transition:background .15s,border-color .15s,transform .1s;white-space:nowrap}
+.boton svg{width:16px;height:16px}
+.boton:hover{background:var(--azul-hondo);border-color:var(--azul-hondo)}
+.boton:active{transform:scale(.98)}
+.boton.sec{background:var(--papel);color:var(--tinta);border-color:var(--linea-fuerte)}
+.boton.sec:hover{border-color:var(--suave)}
+.boton.peligro{background:var(--papel);color:var(--mal);border-color:var(--linea-fuerte)}
+.boton.peligro:hover{border-color:var(--mal);background:var(--mal-fondo)}
+.solo-pc{display:none}
+@media (min-width:800px){.solo-pc{display:inline-flex}.solo-movil{display:none!important}}
+.flotante{position:fixed;right:16px;bottom:88px;width:52px;height:52px;border-radius:14px;padding:0;box-shadow:0 8px 20px rgba(0,91,99,.25);z-index:5}
+.flotante svg{width:22px;height:22px}
+
+/* Tarjetas de prenda */
+.rejilla{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+@media (min-width:800px){.rejilla{grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px}}
+.prenda{background:var(--papel);border:1px solid var(--linea);border-radius:10px;overflow:hidden;cursor:pointer;text-align:left;padding:0;font:inherit;color:inherit;transition:border-color .2s,box-shadow .2s;animation:entra .5s var(--curva) both;animation-delay:calc(var(--i,0) * 30ms)}
+.prenda:hover{border-color:var(--linea-fuerte);box-shadow:0 6px 16px rgba(60,45,20,.07)}
+@keyframes entra{from{opacity:0;transform:translateY(8px)}}
+@media (prefers-reduced-motion:reduce){.prenda{animation:none}}
+.foto{aspect-ratio:1;background:var(--tile);display:grid;place-items:center;position:relative}
+.foto img{width:100%;height:100%;object-fit:cover}
+.foto .silueta{width:44%;color:var(--icono)}
+.foto .silueta svg{width:100%;height:auto;display:block}
+.etiqueta{font:600 .64rem/1 var(--sans);letter-spacing:.05em;text-transform:uppercase;border-radius:999px;padding:5px 8px}
+.foto .etiqueta{position:absolute;top:8px}
+.foto .grado{left:8px}
+.foto .vendida{right:8px;background:var(--tinta);color:#fff}
+.g-A{background:var(--ok-fondo);color:var(--ok)}
+.g-B{background:var(--azul-palido);color:var(--azul-hondo)}
+.g-C{background:var(--aviso-fondo);color:var(--aviso)}
+.prenda .info{padding:10px 12px 12px}
+.prenda .precio{font-weight:700;font-size:1rem;font-variant-numeric:tabular-nums}
+.prenda .meta{color:var(--suave);font-size:.8rem;line-height:1.45;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prenda .marca{color:var(--tinta);font-weight:500}
+.prenda .pie{margin-top:8px;padding-top:8px;border-top:1px solid var(--linea);font-size:.75rem;color:var(--suave);font-variant-numeric:tabular-nums;display:flex;justify-content:space-between;gap:6px}
+.prenda .pie .mas{color:var(--ok);font-weight:600}
+
+/* Cajas, tablas y cifras */
+.caja{background:var(--papel);border:1px solid var(--linea);border-radius:10px;padding:20px;margin-bottom:16px}
+.caja b{font-weight:600}
+.libro{background:var(--papel);border:1px solid var(--linea);border-radius:10px;padding:4px 20px;margin-bottom:16px}
+.libro div{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:12px 0;border-bottom:1px solid var(--linea)}
+.libro div:last-child{border-bottom:0}
+.libro span{color:var(--suave);font-size:.875rem}
+.libro strong{font-weight:500;font-variant-numeric:tabular-nums}
+.libro .total span{color:var(--tinta);font-weight:600}
+.libro .total strong{font-weight:700;font-size:1.3rem;color:var(--azul-hondo)}
+.tabla{background:var(--papel);border:1px solid var(--linea);border-radius:10px;overflow-x:auto;margin-bottom:16px}
+table{width:100%;border-collapse:collapse;font-size:.875rem;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--linea);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+thead th{background:#faf8f4;color:var(--suave);font-weight:500;font-size:.72rem;letter-spacing:.05em;text-transform:uppercase}
+tbody tr:hover td{background:#fcfbf8}
+td.n,th.n{text-align:right}
+td.pos{color:var(--ok)}
+td.neg{color:var(--mal)}
+.tabla .nota{padding:10px 14px;margin:0;border-top:1px solid var(--linea)}
+.barra{height:6px;background:var(--tile);border-radius:99px;overflow:hidden;margin:8px 0 14px}
+.barra i{display:block;height:100%;background:var(--azul);border-radius:99px}
+.barra i.lleno{background:var(--aviso)}
+.medida{display:flex;justify-content:space-between;font-size:.875rem;font-variant-numeric:tabular-nums}
+.nota{color:var(--suave);font-size:.8rem;margin:6px 0 0}
+.aviso{background:var(--aviso-fondo);border-radius:10px;padding:14px 16px;font-size:.875rem;margin-bottom:16px;color:#5c4200}
+.vacio{text-align:center;color:var(--suave);padding:56px 16px;background:var(--papel);border:1px dashed var(--linea-fuerte);border-radius:10px}
+.vacio strong{display:block;font-weight:600;font-size:1.05rem;color:var(--tinta);margin-bottom:4px}
+.dos-col{display:grid;gap:16px}
+@media (min-width:900px){.dos-col{grid-template-columns:1fr 1fr;align-items:start}}
+
+/* Formularios */
+label{display:block;font-size:.8rem;font-weight:500;color:var(--suave);margin-bottom:12px}
+input,select{display:block;width:100%;margin-top:5px;padding:9px 11px;border:1px solid var(--linea-fuerte);border-radius:8px;font:inherit;font-size:.92rem;color:var(--tinta);background:#fff;transition:border-color .15s,box-shadow .15s}
+input:hover,select:hover{border-color:var(--suave)}
+input:focus,select:focus{outline:none;border-color:var(--azul);box-shadow:0 0 0 3px var(--azul-palido)}
+.dos{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+.veredicto{border-radius:8px;padding:14px 16px;margin-top:6px;font-weight:600}
+.veredicto.si{background:var(--ok-fondo);color:var(--ok)}
+.veredicto.no{background:var(--mal-fondo);color:var(--mal)}
+.veredicto small{display:block;font-weight:400;font-size:.875rem;color:var(--tinta);margin-top:6px}
+.veredicto b{font-variant-numeric:tabular-nums}
+.marca-check{display:flex;align-items:center;gap:8px;color:var(--tinta);font-size:.9rem}
+.marca-check input{width:auto;margin:0}
+dialog{border:1px solid var(--linea);border-radius:12px;padding:0;background:var(--papel);color:var(--tinta);width:min(520px,calc(100vw - 24px));max-height:calc(100vh - 24px);box-shadow:0 24px 48px rgba(31,35,40,.18)}
+dialog::backdrop{background:rgba(31,35,40,.4)}
+dialog form{padding:22px}
+dialog .acciones{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;margin-top:12px;padding-top:16px;border-top:1px solid var(--linea)}
+dialog .acciones [data-borrar]{margin-right:auto}
+</style>
+</head>
+<body>
+<header><span class="logo" id="logo"></span><h1>Mi Vinted</h1><span class="sub" id="resumen"></span></header>
+<nav id="nav"></nav>
+<main id="vista"></main>
+<dialog id="dlg"></dialog>
+
+<script>
+// ---------- Datos ----------
+const CLAVE = 'mi-vinted-v1';
+const UMBRAL = 6;                 // € por prenda: por debajo es chollo (criterio del usuario, 27-09-2026)
+const GRADOS_OK = ['A', 'B'];
+const MARCAS = ['Lacoste', 'Ralph Lauren', 'Yves Saint Laurent', 'Carhartt'];
+const CATEGORIAS = ['Camisa', 'Sudadera', 'Otra'];
+const ICONOS = {
+  escaparate: '<rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/>',
+  chollo: '<path d="M3.5 12.2V4.5a1 1 0 0 1 1-1h7.7l8.3 8.3a1.4 1.4 0 0 1 0 2l-6.2 6.2a1.4 1.4 0 0 1-2 0z"/><circle cx="8" cy="8" r="1.5"/>',
+  ventas: '<path d="M3.5 20.5h17M6.5 16.5v-4M11.5 16.5v-8M16.5 16.5V5.5"/>',
+  numeros: '<path d="M6 3.5h12a1 1 0 0 1 1 1v16l-3-2-3 2-3-2-3 2-2-1.4V4.5a1 1 0 0 1 1-1zM9 8.5h6M9 12.5h6"/>',
+};
+// Siluetas para las prendas sin foto, una por categoría.
+const SILUETAS = {
+  Camisa: '<path d="M8.5 3.5 4 6v4.5l2.5.7V20.5h11v-9.3l2.5-.7V6l-4.5-2.5L12 6.5z"/><path d="M12 6.5v14M9.5 3.5 12 6.5l2.5-3"/>',
+  Sudadera: '<path d="M9 3.5a3 3 0 0 0 6 0"/><path d="M9 3.5 4.5 6 3 13.5l2.6.8L7 10v10.5h10V10l1.4 4.3 2.6-.8L19.5 6 15 3.5"/><path d="M10.5 9v2.5M13.5 9v2.5M8.5 17.5h7"/>',
+  Otra: '<path d="M10.2 5.7a1.8 1.8 0 1 1 1.8 1.8v1.2l8.4 6.3a1 1 0 0 1-.6 1.8H4.2a1 1 0 0 1-.6-1.8L12 8.7"/>',
+};
+const MAS = '<path d="M12 5v14M5 12h14"/>';
+const svg = d => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+
+let db = cargar();
+function cargar() {
+  try { return JSON.parse(localStorage.getItem(CLAVE)) || { prendas: [] }; }
+  catch { return { prendas: [] }; }
+}
+function guardar() {
+  try { localStorage.setItem(CLAVE, JSON.stringify(db)); }
+  catch (e) { alert('No se pudo guardar (¿memoria llena por las fotos?): ' + e.message); }
+}
+
+const eur = n => (n ?? 0).toLocaleString('es-ES', { style: 'currency', currency: 'EUR' });
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const hoy = () => new Date().toISOString().slice(0, 10);
+const dias = (a, b) => Math.round((new Date(b) - new Date(a)) / 864e5);
+const suma = (xs, f) => xs.reduce((s, x) => s + f(x), 0);
+const num = v => parseFloat(String(v).replace(',', '.'));
+
+// ---------- Lógica (pura, la prueba #test la ejercita) ----------
+function evaluarLote({ precio, envio = 0, n, grado }) {
+  const coste = (precio + envio) / n;
+  const barato = coste < UMBRAL, gradoOk = GRADOS_OK.includes(grado);
+  return { coste, barato, gradoOk, chollo: barato && gradoOk };
+}
+
+function historico(prendas, marca, categoria) {
+  const v = prendas.filter(p => p.estado === 'vendida' && p.marca === marca && (!categoria || p.categoria === categoria));
+  if (!v.length) return null;
+  return {
+    n: v.length,
+    precioMedio: suma(v, p => p.precioVenta) / v.length,
+    diasMedios: suma(v, p => dias(p.fechaCompra, p.fechaVenta)) / v.length,
+  };
+}
+
+function resumenAnual(prendas, anio) {
+  const v = prendas.filter(p => p.estado === 'vendida' && (p.fechaVenta || '').startsWith(anio));
+  const ingresos = suma(v, p => p.precioVenta);
+  const costeVendido = suma(v, p => p.coste);
+  // REBU individual: el IVA va incluido en el margen de cada venta, y un margen negativo no resta.
+  const ivaRebu = suma(v, p => Math.max(0, p.precioVenta - p.coste)) * 21 / 121;
+  return {
+    ventas: v.length, ingresos, costeVendido, margen: ingresos - costeVendido, ivaRebu,
+    compras: suma(prendas.filter(p => (p.fechaCompra || '').startsWith(anio)), p => p.coste),
+    stock: prendas.filter(p => p.estado !== 'vendida').length,
+  };
+}
+
+function ventasPeriodo(prendas, desde, hasta) {
+  return prendas.filter(p => p.estado === 'vendida' && p.fechaVenta >= desde && p.fechaVenta <= hasta)
+    .sort((a, b) => a.fechaVenta.localeCompare(b.fechaVenta));
+}
+
+// CSV para Excel en español: separador ";", coma decimal y BOM para que lea bien las tildes.
+function csvVentas(v) {
+  const n = x => x.toFixed(2).replace('.', ',');
+  const campo = s => /[;"\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  const iva = p => Math.max(0, p.precioVenta - p.coste) * 21 / 121;
+  const filas = [['Fecha venta', 'Marca', 'Categoría', 'Talla', 'Grado', 'Coste', 'Precio venta', 'Margen', 'IVA REBU estimado']];
+  for (const p of v) filas.push([p.fechaVenta, p.marca, p.categoria, p.talla, p.grado, n(p.coste), n(p.precioVenta), n(p.precioVenta - p.coste), n(iva(p))]);
+  filas.push(['TOTAL', v.length + ' ventas', '', '', '', n(suma(v, p => p.coste)), n(suma(v, p => p.precioVenta)), n(suma(v, p => p.precioVenta - p.coste)), n(suma(v, iva))]);
+  return '﻿' + filas.map(f => f.map(x => campo(String(x ?? ''))).join(';')).join('\r\n');
+}
+
+// ---------- Navegación ----------
+const VISTAS = [
+  ['escaparate', 'Escaparate'],
+  ['chollo', 'Chollo'],
+  ['ventas', 'Ventas'],
+  ['numeros', 'Números'],
+];
+let vista = 'escaparate', filtro = 'stock';
+
+function pintar() {
+  document.getElementById('nav').innerHTML = VISTAS.map(([id, txt]) =>
+    `<button data-vista="${id}" aria-current="${id === vista}">${svg(ICONOS[id])}${txt}</button>`).join('');
+  const r = resumenAnual(db.prendas, String(new Date().getFullYear()));
+  document.getElementById('resumen').textContent = `${r.stock} en venta · ${r.ventas} vendidas este año · ${eur(r.margen)} de margen`;
+  document.getElementById('vista').innerHTML = { escaparate, chollo, ventas, numeros }[vista]();
+  if (vista === 'chollo') calcularChollo();
+  if (vista === 'numeros') resumirPeriodo();
+}
+document.getElementById('nav').onclick = e => {
+  const b = e.target.closest('button'); if (!b) return;
+  vista = b.dataset.vista; pintar(); scrollTo(0, 0);
+};
+
+// ---------- Escaparate ----------
+function tarjeta(p, i) {
+  const vendida = p.estado === 'vendida';
+  const foto = p.foto ? `<img src="${p.foto}" alt="${esc(p.marca + ' ' + p.categoria)}">`
+    : `<span class="silueta">${svg(SILUETAS[p.categoria] || SILUETAS.Otra)}</span>`;
+  const pie = vendida
+    ? `<span>Vendida ${fechaCorta(p.fechaVenta)}</span><span class="mas">${p.precioVenta >= p.coste ? '+' : ''}${eur(p.precioVenta - p.coste)}</span>`
+    : `<span>Coste ${eur(p.coste)}</span><span>${dias(p.fechaCompra, hoy())} d</span>`;
+  return `<button class="prenda" data-id="${p.id}" style="--i:${Math.min(i, 12)}">
+    <div class="foto">${foto}<span class="etiqueta grado g-${esc(p.grado)}">Grado ${esc(p.grado)}</span>
+      ${vendida ? '<span class="etiqueta vendida">Vendida</span>' : ''}</div>
+    <div class="info"><div class="precio">${eur(vendida ? p.precioVenta : p.precio)}</div>
+      <div class="meta marca">${esc(p.marca)}</div><div class="meta">${esc(p.categoria)} · Talla ${esc(p.talla)}</div>
+      <div class="pie">${pie}</div></div>
+  </button>`;
+}
+const fechaCorta = f => new Date(f + 'T00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+
+let busca = '', marcaFiltro = '';
+function rejilla() {
+  const q = busca.trim().toLowerCase();
+  const lista = db.prendas
+    .filter(p => filtro === 'todas' || (filtro === 'stock' ? p.estado !== 'vendida' : p.estado === 'vendida'))
+    .filter(p => !marcaFiltro || p.marca === marcaFiltro)
+    .filter(p => !q || `${p.marca} ${p.categoria} ${p.talla}`.toLowerCase().includes(q))
+    .sort((a, b) => (b.fechaVenta || b.fechaCompra).localeCompare(a.fechaVenta || a.fechaCompra));
+  if (lista.length) return `<div class="rejilla">${lista.map((p, i) => tarjeta(p, i)).join('')}</div>`;
+  return db.prendas.length
+    ? '<div class="vacio"><strong>Nada coincide con el filtro</strong>Prueba con otra marca o borra la búsqueda.</div>'
+    : '<div class="vacio"><strong>Aún no hay prendas</strong>Añade la primera, o carga los datos de prueba en Números.</div>';
+}
+
+function escaparate() {
+  const stock = db.prendas.filter(p => p.estado !== 'vendida');
+  const marcas = [...new Set(db.prendas.map(p => p.marca))].sort();
+  const segs = [['stock', 'En venta'], ['vendida', 'Vendidas'], ['todas', 'Todas']]
+    .map(([f, t]) => `<button data-filtro="${f}" aria-pressed="${f === filtro}">${t}</button>`).join('');
+  return `<div class="cabecera-vista"><div><h2>Escaparate</h2>
+      <p class="nota">${stock.length} prendas en venta · ${eur(suma(stock, p => p.precio))} a precio de Vinted</p></div>
+      <button class="boton solo-pc" data-nueva>${svg(MAS)}Añadir prenda</button></div>
+    <div class="herramientas">
+      <div class="segmentos" role="group" aria-label="Estado">${segs}</div>
+      <input type="search" id="busca" placeholder="Buscar marca, prenda o talla" aria-label="Buscar" value="${esc(busca)}">
+      <select id="fMarca" aria-label="Marca"><option value="">Todas las marcas</option>${marcas.map(m => `<option ${m === marcaFiltro ? 'selected' : ''}>${esc(m)}</option>`).join('')}</select>
+    </div>
+    <div id="zonaRejilla">${rejilla()}</div>
+    <button class="boton flotante solo-movil" data-nueva aria-label="Añadir prenda">${svg(MAS)}</button>`;
+}
+
+document.getElementById('vista').addEventListener('input', e => {
+  if (e.target.id === 'busca') { busca = e.target.value; document.getElementById('zonaRejilla').innerHTML = rejilla(); }
+});
+
+document.getElementById('vista').addEventListener('click', e => {
+  const f = e.target.closest('[data-filtro]'); if (f) { filtro = f.dataset.filtro; return pintar(); }
+  const p = e.target.closest('.prenda'); if (p) return abrirPrenda(db.prendas.find(x => x.id === p.dataset.id));
+  if (e.target.closest('[data-nueva]')) return abrirPrenda(null);
+  const r = e.target.closest('[data-rango]');
+  if (r) { [periodo.desde, periodo.hasta] = rangos[r.dataset.rango](); document.getElementById('pDesde').value = periodo.desde; document.getElementById('pHasta').value = periodo.hasta; return resumirPeriodo(); }
+  const a = e.target.closest('[data-accion]'); if (a) return ACCIONES[a.dataset.accion]();
+});
+
+// ---------- Ficha de prenda ----------
+const opciones = (xs, sel) => xs.map(x => `<option ${x === sel ? 'selected' : ''}>${esc(x)}</option>`).join('');
+
+function abrirPrenda(p) {
+  const nueva = !p;
+  p = p || { marca: MARCAS[0], categoria: 'Camisa', talla: 'M', grado: 'A', coste: '', precio: '', fechaCompra: hoy(), estado: 'stock' };
+  const dlg = document.getElementById('dlg');
+  dlg.innerHTML = `<form method="dialog">
+    <h2>${nueva ? 'Nueva prenda' : esc(p.marca) + ' · ' + esc(p.categoria)}</h2>
+    <label>Marca<input name="marca" list="marcas" required value="${esc(p.marca)}"></label>
+    <datalist id="marcas">${MARCAS.map(m => `<option value="${esc(m)}">`).join('')}</datalist>
+    <div class="dos">
+      <label>Categoría<select name="categoria">${opciones(CATEGORIAS, p.categoria)}</select></label>
+      <label>Talla<input name="talla" value="${esc(p.talla)}"></label>
+      <label>Grado<select name="grado">${opciones(['A', 'B', 'C'], p.grado)}</select></label>
+      <label>Fecha de compra<input type="date" name="fechaCompra" required value="${esc(p.fechaCompra)}"></label>
+      <label>Coste (€)<input name="coste" inputmode="decimal" required value="${p.coste}"></label>
+      <label>Precio en Vinted (€)<input name="precio" inputmode="decimal" required value="${p.precio}"></label>
+    </div>
+    <label>Foto<input type="file" name="foto" accept="image/*"></label>
+    <label class="marca-check"><input type="checkbox" name="vendida" ${p.estado === 'vendida' ? 'checked' : ''}> Vendida</label>
+    <div class="dos" id="bloqueVenta">
+      <label>Precio de venta (€)<input name="precioVenta" inputmode="decimal" value="${p.precioVenta ?? p.precio}"></label>
+      <label>Fecha de venta<input type="date" name="fechaVenta" value="${esc(p.fechaVenta || hoy())}"></label>
+    </div>
+    <div class="acciones">
+      ${nueva ? '' : '<button type="button" class="boton peligro" data-borrar>Borrar</button>'}
+      <button value="cancelar" class="boton sec" formnovalidate>Cancelar</button>
+      <button value="ok" class="boton">Guardar</button>
+    </div></form>`;
+  const form = dlg.querySelector('form');
+  const venta = () => form.querySelector('#bloqueVenta').hidden = !form.vendida.checked;
+  form.vendida.onchange = venta; venta();
+  const borrar = form.querySelector('[data-borrar]');
+  if (borrar) borrar.onclick = () => {
+    if (!confirm('¿Borrar esta prenda? No se puede deshacer.')) return;
+    db.prendas = db.prendas.filter(x => x.id !== p.id); guardar(); dlg.close(); pintar();
+  };
+  form.onsubmit = async e => {
+    if (e.submitter?.value !== 'ok') return;
+    const d = Object.fromEntries(new FormData(form));
+    const coste = num(d.coste), precio = num(d.precio), precioVenta = num(d.precioVenta);
+    if (!(coste >= 0) || !(precio >= 0) || (form.vendida.checked && !(precioVenta >= 0))) {
+      e.preventDefault(); return alert('Revisa los importes: tienen que ser números.');
+    }
+    Object.assign(p, {
+      marca: d.marca.trim(), categoria: d.categoria, talla: d.talla.trim(), grado: d.grado,
+      coste, precio, fechaCompra: d.fechaCompra,
+      estado: form.vendida.checked ? 'vendida' : 'stock',
+      precioVenta: form.vendida.checked ? precioVenta : undefined,
+      fechaVenta: form.vendida.checked ? d.fechaVenta : undefined,
+    });
+    if (form.foto.files[0]) p.foto = await miniatura(form.foto.files[0]);
+    if (nueva) { p.id = crypto.randomUUID(); db.prendas.push(p); }
+    guardar(); pintar();
+  };
+  dlg.showModal();
+}
+
+// Las fotos se guardan reducidas: el almacenamiento del navegador ronda los 5 MB.
+function miniatura(file) {
+  return new Promise((ok, mal) => {
+    const img = new Image();
+    img.onload = () => {
+      const k = Math.min(1, 480 / img.width), c = document.createElement('canvas');
+      c.width = img.width * k; c.height = img.height * k;
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(img.src); ok(c.toDataURL('image/jpeg', .7));
+    };
+    img.onerror = mal; img.src = URL.createObjectURL(file);
+  });
+}
+
+// ---------- Chollo ----------
+function chollo() {
+  return `<div class="cabecera-vista"><div><h2>¿Me compensa este lote?</h2>
+      <p class="nota">Mete la oferta que ves en Fleek y compárala con lo que ya has vendido.</p></div></div>
+    <div class="caja" id="fChollo">
+      <label>Marca<input id="cMarca" list="marcas2" value="${MARCAS[0]}"></label>
+      <datalist id="marcas2">${MARCAS.map(m => `<option value="${esc(m)}">`).join('')}</datalist>
+      <div class="dos">
+        <label>Categoría<select id="cCat">${opciones(CATEGORIAS, 'Camisa')}</select></label>
+        <label>Grado<select id="cGrado">${opciones(['A', 'B', 'C'], 'A')}</select></label>
+        <label>Precio del lote (€)<input id="cPrecio" inputmode="decimal" value="100"></label>
+        <label>Nº de prendas<input id="cN" inputmode="numeric" value="20"></label>
+        <label>Envío (€)<input id="cEnvio" inputmode="decimal" value="0"></label>
+      </div>
+      <div id="cRes"></div>
+    </div>
+    <p class="nota">Chollo = menos de ${eur(UMBRAL)} por prenda y grado ${GRADOS_OK.join(' o ')}. El precio esperado sale de lo que ya has vendido de esa marca y categoría.</p>`;
+}
+
+function calcularChollo() {
+  const $ = id => document.getElementById(id);
+  const calc = () => {
+    const n = parseInt($('cN').value), precio = num($('cPrecio').value), envio = num($('cEnvio').value) || 0;
+    if (!(n > 0) || !(precio >= 0)) return $('cRes').innerHTML = '<p class="nota">Pon el precio y el número de prendas.</p>';
+    const r = evaluarLote({ precio, envio, n, grado: $('cGrado').value });
+    const h = historico(db.prendas, $('cMarca').value.trim(), $('cCat').value);
+    const motivos = [!r.barato && `sale a ${eur(r.coste)} por prenda (tope ${eur(UMBRAL)})`, !r.gradoOk && `grado ${$('cGrado').value}`].filter(Boolean);
+    const hist = h
+      ? `Has vendido ${h.n} de esta marca y categoría a ${eur(h.precioMedio)} de media, en ${Math.round(h.diasMedios)} días.
+         Margen esperado: <b>${eur(h.precioMedio - r.coste)}</b> por prenda, <b>${eur((h.precioMedio - r.coste) * n)}</b> el lote.`
+      : 'Todavía no has vendido nada de esta marca y categoría: no hay precio esperado.';
+    $('cRes').innerHTML = `<div class="veredicto ${r.chollo ? 'si' : 'no'}">
+      <span style="display:flex;align-items:center;gap:8px">${svg(r.chollo ? '<path d="m5 12.5 4.5 4.5L19 7.5"/>' : '<path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/>').replace('<svg', '<svg width="18" height="18"')}
+      ${r.chollo ? `Es chollo · ${eur(r.coste)} por prenda` : 'No es chollo: ' + motivos.join(' y ')}</span>
+      <small>${hist}</small></div>`;
+  };
+  $('fChollo').oninput = calc; calc();
+}
+
+// ---------- Ventas ----------
+function ventas() {
+  const v = db.prendas.filter(p => p.estado === 'vendida').sort((a, b) => b.fechaVenta.localeCompare(a.fechaVenta));
+  if (!v.length) return '<h2>Ventas</h2><div class="vacio"><strong>Aún no hay ventas</strong>Cuando marques una prenda como vendida aparecerá aquí.</div>';
+  const grupos = {};
+  for (const p of v) (grupos[p.marca + ' · ' + p.categoria] ||= []).push(p);
+  const filasMarca = Object.entries(grupos).sort((a, b) => b[1].length - a[1].length).map(([k, xs]) => `<tr>
+    <td>${esc(k)}</td><td class="n">${xs.length}</td>
+    <td class="n">${eur(suma(xs, p => p.precioVenta) / xs.length)}</td>
+    <td class="n pos">${eur(suma(xs, p => p.precioVenta - p.coste) / xs.length)}</td>
+    <td class="n">${Math.round(suma(xs, p => dias(p.fechaCompra, p.fechaVenta)) / xs.length)}</td></tr>`).join('');
+  const filas = v.slice(0, 50).map(p => `<tr><td>${p.fechaVenta.split('-').reverse().join('/')}</td>
+    <td>${esc(p.marca)} · ${esc(p.categoria)}</td><td class="n">${eur(p.precioVenta)}</td>
+    <td class="n ${p.precioVenta >= p.coste ? 'pos' : 'neg'}">${eur(p.precioVenta - p.coste)}</td></tr>`).join('');
+  return `<div class="cabecera-vista"><div><h2>Ventas</h2>
+      <p class="nota">${v.length} ventas · ${eur(suma(v, p => p.precioVenta))} facturado · ${eur(suma(v, p => p.precioVenta - p.coste))} de margen</p></div></div>
+    <h3>Qué se vende mejor</h3>
+    <div class="tabla"><table><thead><tr><th>Marca · categoría</th><th class="n">Ventas</th><th class="n">Precio medio</th><th class="n">Margen medio</th><th class="n">Días</th></tr></thead>
+    <tbody>${filasMarca}</tbody></table></div>
+    <h3>Últimas ventas</h3>
+    <div class="tabla"><table><thead><tr><th>Fecha</th><th>Prenda</th><th class="n">Venta</th><th class="n">Margen</th></tr></thead>
+    <tbody>${filas}</tbody></table>${v.length > 50 ? `<p class="nota">Se ven las 50 últimas de ${v.length}.</p>` : ''}</div>`;
+}
+
+// ---------- Números ----------
+let anio = String(new Date().getFullYear());
+const iso = d => new Date(d.getTime() - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
+const rangos = {
+  mes: () => { const d = new Date(); return [iso(new Date(d.getFullYear(), d.getMonth(), 1)), iso(new Date(d.getFullYear(), d.getMonth() + 1, 0))]; },
+  mesPasado: () => { const d = new Date(); return [iso(new Date(d.getFullYear(), d.getMonth() - 1, 1)), iso(new Date(d.getFullYear(), d.getMonth(), 0))]; },
+  anio: () => { const y = new Date().getFullYear(); return [y + '-01-01', y + '-12-31']; },
+};
+let periodo = (([desde, hasta]) => ({ desde, hasta }))(rangos.mes());
+function resumirPeriodo() {
+  const v = ventasPeriodo(db.prendas, periodo.desde, periodo.hasta);
+  document.getElementById('pRes').innerHTML = `<p class="nota" style="margin:0 0 14px">${v.length} ventas · ${eur(suma(v, p => p.precioVenta))} facturado · ${eur(suma(v, p => p.precioVenta - p.coste))} de margen</p>`;
+}
+function numeros() {
+  const anios = [...new Set(db.prendas.flatMap(p => [p.fechaCompra, p.fechaVenta]).filter(Boolean).map(f => f.slice(0, 4)))].sort().reverse();
+  if (!anios.includes(anio)) anios.unshift(anio);
+  const r = resumenAnual(db.prendas, anio);
+  const pv = Math.min(100, r.ventas / 30 * 100), pi = Math.min(100, r.ingresos / 2000 * 100);
+  return `<div class="cabecera-vista"><div><h2>Números</h2><p class="nota">Resumen del año para él, y para el gestor si llega a tenerlo.</p></div>
+      <select id="selAnio" aria-label="Año" style="width:auto;margin:0">${opciones(anios, anio)}</select></div>
+    <div class="dos-col"><div class="libro">
+      <div><span>Ventas</span><strong>${r.ventas}</strong></div>
+      <div><span>Ingresos</span><strong>${eur(r.ingresos)}</strong></div>
+      <div><span>Coste de lo vendido</span><strong>${eur(r.costeVendido)}</strong></div>
+      <div><span>Gastado en compras</span><strong>${eur(r.compras)}</strong></div>
+      <div><span>IVA estimado (REBU)</span><strong>${eur(r.ivaRebu)}</strong></div>
+      <div class="total"><span>Margen</span><strong>${eur(r.margen)}</strong></div>
+    </div>
+    <div><div class="caja"><b>Aviso de Vinted a Hacienda (DAC7)</b>
+      <p class="nota">Vinted informa a Hacienda cuando llegas a 30 ventas o a 2.000 € en el año.</p>
+      <div class="medida" style="margin-top:14px"><span>Ventas</span><span>${r.ventas} de 30</span></div><div class="barra"><i class="${pv >= 100 ? 'lleno' : ''}" style="width:${pv}%"></i></div>
+      <div class="medida"><span>Ingresos</span><span>${eur(r.ingresos)} de ${eur(2000)}</span></div><div class="barra"><i class="${pi >= 100 ? 'lleno' : ''}" style="width:${pi}%"></i></div>
+    </div>
+    <div class="aviso"><b>Esto es una estimación, no una declaración.</b> El IVA calculado aquí supone el régimen de bienes usados (REBU): 21 % incluido en el margen de cada venta. Si tiene que darse de alta como autónomo, qué régimen le toca y qué modelos presenta lo confirma un gestor.</div></div></div>
+    <h3>Exportar un periodo</h3>
+    <div class="caja" id="fPeriodo">
+      <div class="dos">
+        <label>Desde<input type="date" id="pDesde" value="${periodo.desde}"></label>
+        <label>Hasta<input type="date" id="pHasta" value="${periodo.hasta}"></label>
+      </div>
+      <div class="fila">${[['mes', 'Este mes'], ['mesPasado', 'Mes pasado'], ['anio', 'Este año']].map(([k, txt]) => `<button class="chip" data-rango="${k}">${txt}</button>`).join('')}</div>
+      <div id="pRes"></div>
+      <button class="boton" data-accion="exportarPeriodo">Exportar ventas (CSV, se abre en Excel)</button>
+    </div>
+    <h3>Datos</h3>
+    <div class="caja">
+      <p class="nota">Los datos viven en este navegador. El PC y el móvil guardan cada uno los suyos: para pasarlos de uno a otro, exporta aquí e importa allí.</p>
+      <div class="fila">
+        <button class="boton" data-accion="exportar">Exportar copia</button>
+        <label class="boton sec" style="margin:0">Importar copia<input type="file" id="fImport" accept=".json" hidden></label>
+        <button class="boton sec" data-accion="demo">Cargar datos de prueba</button>
+        <button class="boton peligro" data-accion="borrarTodo">Borrar todo</button>
+      </div>
+    </div>`;
+}
+
+document.getElementById('vista').addEventListener('change', e => {
+  if (e.target.id === 'selAnio') { anio = e.target.value; pintar(); }
+  if (e.target.id === 'fMarca') { marcaFiltro = e.target.value; document.getElementById('zonaRejilla').innerHTML = rejilla(); }
+  if (e.target.id === 'pDesde' || e.target.id === 'pHasta') { periodo[e.target.id === 'pDesde' ? 'desde' : 'hasta'] = e.target.value; resumirPeriodo(); }
+  if (e.target.id === 'fImport' && e.target.files[0]) {
+    e.target.files[0].text().then(t => {
+      const d = JSON.parse(t);
+      if (!Array.isArray(d.prendas)) throw new Error('el fichero no tiene prendas');
+      if (!confirm(`Se sustituirán tus datos por los ${d.prendas.length} de la copia. ¿Seguir?`)) return;
+      db = d; guardar(); pintar();
+    }).catch(err => alert('No se pudo importar: ' + err.message));
+  }
+});
+
+function descargar(texto, tipo, nombre) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([texto], { type: tipo }));
+  a.download = nombre; a.click();
+}
+
+const ACCIONES = {
+  exportar() { descargar(JSON.stringify(db), 'application/json', `mi-vinted-${hoy()}.json`); },
+  exportarPeriodo() {
+    if (periodo.desde > periodo.hasta) return alert('La fecha «desde» va después de «hasta».');
+    const v = ventasPeriodo(db.prendas, periodo.desde, periodo.hasta);
+    if (!v.length) return alert('No hay ventas en ese periodo.');
+    descargar(csvVentas(v), 'text/csv;charset=utf-8', `ventas-${periodo.desde}-a-${periodo.hasta}.csv`);
+  },
+  demo() {
+    if (db.prendas.length && !confirm('Se sustituirán tus datos por datos de prueba. ¿Seguir?')) return;
+    db = { prendas: datosDePrueba() }; guardar(); pintar();
+  },
+  borrarTodo() {
+    if (!confirm('¿Borrar TODAS las prendas? Exporta antes una copia si las quieres.')) return;
+    db = { prendas: [] }; guardar(); pintar();
+  },
+};
+
+// ---------- Datos de prueba (ficticios) ----------
+function datosDePrueba() {
+  let s = 7; const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647;
+  const elige = xs => xs[Math.floor(rnd() * xs.length)];
+  const base = { 'Lacoste': 22, 'Ralph Lauren': 26, 'Yves Saint Laurent': 45, 'Carhartt': 30 };
+  const fecha = d => new Date(Date.now() - d * 864e5).toISOString().slice(0, 10);
+  return Array.from({ length: 48 }, (_, i) => {
+    const marca = elige(MARCAS), categoria = elige(['Camisa', 'Camisa', 'Sudadera']);
+    const precio = Math.round(base[marca] * (categoria === 'Sudadera' ? 1.3 : 1) * (0.8 + rnd() * 0.4));
+    const compra = Math.floor(rnd() * 420) + 10, vendida = rnd() < 0.65 && compra > 12;
+    const tarda = Math.floor(rnd() * Math.min(60, compra - 1)) + 1;
+    return {
+      id: 'demo-' + i, marca, categoria, talla: elige(['S', 'M', 'L', 'XL']), grado: elige(['A', 'A', 'B', 'B', 'C']),
+      coste: +(3 + rnd() * 5).toFixed(2), precio, fechaCompra: fecha(compra),
+      estado: vendida ? 'vendida' : 'stock',
+      precioVenta: vendida ? precio - Math.floor(rnd() * 4) : undefined,
+      fechaVenta: vendida ? fecha(compra - tarda) : undefined,
+    };
+  });
+}
+
+// ---------- Autoprueba: abrir con #test al final de la dirección ----------
+if (location.hash === '#test') {
+  const ok = (c, m) => { if (!c) throw new Error('FALLA: ' + m); };
+  const a = evaluarLote({ precio: 100, n: 20, grado: 'A' });
+  ok(a.coste === 5 && a.chollo, '5 €/prenda grado A es chollo');
+  ok(!evaluarLote({ precio: 120, n: 20, grado: 'A' }).chollo, '6 € justos no es chollo (tiene que ser menos de 6)');
+  ok(!evaluarLote({ precio: 50, n: 20, grado: 'C' }).chollo, 'grado C nunca es chollo');
+  ok(evaluarLote({ precio: 90, envio: 20, n: 20, grado: 'B' }).coste === 5.5, 'el envío cuenta en el coste');
+  const ps = [
+    { marca: 'X', categoria: 'Camisa', estado: 'vendida', coste: 5, precioVenta: 20, fechaCompra: '2026-01-01', fechaVenta: '2026-01-11' },
+    { marca: 'X', categoria: 'Camisa', estado: 'vendida', coste: 10, precioVenta: 4, fechaCompra: '2026-02-01', fechaVenta: '2026-02-21' },
+    { marca: 'X', categoria: 'Camisa', estado: 'stock', coste: 3, fechaCompra: '2026-03-01' },
+  ];
+  const h = historico(ps, 'X', 'Camisa');
+  ok(h.n === 2 && h.precioMedio === 12 && h.diasMedios === 15, 'histórico: media de precio y de días');
+  const r = resumenAnual(ps, '2026');
+  ok(r.ventas === 2 && r.ingresos === 24 && r.margen === 9 && r.compras === 18, 'resumen anual');
+  ok(Math.abs(r.ivaRebu - 15 * 21 / 121) < 1e-9, 'REBU: el margen negativo no resta');
+  const mayo = ventasPeriodo(ps, '2026-01-01', '2026-01-31');
+  ok(mayo.length === 1 && mayo[0].precioVenta === 20, 'periodo: solo entran las ventas entre las dos fechas, ambas incluidas');
+  const csv = csvVentas(mayo).split('\r\n');
+  ok(csv.length === 3 && csv[1].includes('20,00') && csv[2].startsWith('TOTAL;1 ventas'), 'CSV: cabecera, fila con coma decimal y total');
+  document.title = 'OK';
+  document.body.insertAdjacentHTML('afterbegin', '<p style="background:#e3f5ea;padding:8px 16px;margin:0">Autoprueba OK: 9 comprobaciones</p>');
+}
+
+document.getElementById('logo').innerHTML = svg(SILUETAS.Otra);
+
+pintar();
+</script>
+</body>
+</html>
