@@ -244,6 +244,103 @@ function csvVentas(v) {
   return '﻿' + filas.map(f => f.map(x => campo(String(x ?? ''))).join(';')).join('\r\n');
 }
 
+// ---------- Importar la descarga de datos de Vinted (RGPD) ----------
+// La descarga es un zip con una página HTML por apartado; cada dato va en un atributo itemprop.
+// Se usan tres: orders (ventas), listings (en venta) y deleted_items (solo para sacar marca y talla).
+// El coste no viene en Vinted: entra a 0 y lo pone él en cada prenda.
+const VINTED = { orders: 'orders/index.html', listings: 'listings/index.html', deleted: 'deleted_items/index.html' };
+const GRADO_VINTED = { 'Nuevo con etiquetas': 'A', 'Nuevo sin etiquetas': 'A', 'Muy bueno': 'A', 'Bueno': 'B', 'Satisfactorio': 'C' };
+const categoriaDe = t => /sudadera|sweat|hoodie|jersey|sweater|pullover|crewneck|fleece/i.test(t) ? 'Sudadera'
+  : /camisa|shirt|polo|camiseta|\btee\b/i.test(t) ? 'Camisa' : 'Otra';
+const tallaDe = t => (t.match(/\b(?:talla|size)\s*:?\s*(XXS|XS|S|M|L|XL|XXL|XXXL|\d{2})\b/i) || [])[1]?.toUpperCase() || '';
+
+// Lee solo las entradas pedidas del zip, a trozos: el fichero entero puede pesar gigas por las fotos.
+async function leerZip(file, rutas) {
+  const trozo = async (a, b) => new Uint8Array(await file.slice(a, b).arrayBuffer());
+  const cola = await trozo(Math.max(0, file.size - 65557), file.size);
+  let e = cola.length - 22;
+  while (e >= 0 && !(cola[e] === 0x50 && cola[e + 1] === 0x4b && cola[e + 2] === 5 && cola[e + 3] === 6)) e--;
+  if (e < 0) throw new Error('no parece un zip');
+  const fin = new DataView(cola.buffer, cola.byteOffset);
+  const tam = fin.getUint32(e + 12, true), ini = fin.getUint32(e + 16, true);
+  if (ini === 0xffffffff) throw new Error('el zip pasa de 4 GB; descomprímelo y sube los HTML sueltos');
+  const cd = await trozo(ini, ini + tam), v = new DataView(cd.buffer, cd.byteOffset), dec = new TextDecoder();
+  const out = {};
+  for (let p = 0; p + 46 <= cd.length; ) {
+    const metodo = v.getUint16(p + 10, true), comp = v.getUint32(p + 20, true), off = v.getUint32(p + 42, true);
+    const ln = v.getUint16(p + 28, true), nombre = dec.decode(cd.subarray(p + 46, p + 46 + ln));
+    p += 46 + ln + v.getUint16(p + 30, true) + v.getUint16(p + 32, true);
+    const clave = Object.keys(rutas).find(k => nombre.endsWith(rutas[k]));
+    if (!clave) continue;
+    const lh = new DataView((await trozo(off, off + 30)).buffer);
+    const desde = off + 30 + lh.getUint16(26, true) + lh.getUint16(28, true);
+    let s = file.slice(desde, desde + comp).stream();
+    if (metodo === 8) s = s.pipeThrough(new DecompressionStream('deflate-raw'));
+    else if (metodo !== 0) throw new Error('el zip usa una compresión que no se puede leer aquí');
+    out[clave] = await new Response(s).text();
+  }
+  return out;
+}
+
+// Si en vez del zip suben los HTML sueltos, se reconoce cada uno por lo que trae dentro.
+const tipoVinted = h => h.includes('itemprop="order_purchased"') ? 'orders'
+  : h.includes('itemprop="created_at"') ? 'listings' : h.includes('itemprop="title"') ? 'deleted' : null;
+
+function leerVinted({ orders = '', listings = '', deleted = '' }) {
+  const celdas = h => [...new DOMParser().parseFromString(h, 'text/html').querySelectorAll('.cell[itemscope]')];
+  const dato = (el, k) => el.querySelector(`[itemprop="${k}"]`)?.textContent.replace(/\s+/g, ' ').trim() || '';
+  const euros = s => num((s.match(/[\d.]+/) || [])[0]);
+  const articulo = (el, enVenta) => ({
+    titulo: dato(el, 'title'), marca: dato(el, 'brand'), talla: dato(el, 'size'), grado: GRADO_VINTED[dato(el, 'status')] || '',
+    fecha: dato(el, 'created_at').slice(0, 10), precio: euros(dato(el, 'order_value')), enVenta,
+    vid: (el.querySelector('[itemprop="item_photo"]')?.getAttribute('src').match(/photos\/(\d+)\//) || [])[1],
+  });
+  const arts = [...celdas(listings).map(el => articulo(el, true)), ...celdas(deleted).map(el => articulo(el, false))].filter(a => a.titulo);
+  const marcas = [...new Set([...arts.map(a => a.marca), ...MARCAS].filter(Boolean))].sort((a, b) => b.length - a.length);
+  const marcaDe = t => marcas.find(m => t.toLowerCase().includes(m.toLowerCase())) || 'Sin marca';
+  // Solo pedidos cerrados (fuera los cancelados), y solo los del vendedor que más aparece: el resto son compras suyas a otros.
+  const pedidos = celdas(orders).map(el => ({ el, vendedor: dato(el, 'seller'), fechaVenta: dato(el, 'order_purchased').slice(0, 10) }))
+    .filter(o => /finalizado|completado/i.test(dato(o.el, 'status')));
+  const cuenta = {}; pedidos.forEach(o => cuenta[o.vendedor] = (cuenta[o.vendedor] || 0) + 1);
+  const yo = Object.keys(cuenta).sort((a, b) => cuenta[b] - cuenta[a])[0];
+  const usados = new Set(), vendidas = [], repes = {};
+  for (const { el, vendedor, fechaVenta } of pedidos) {
+    if (vendedor !== yo) continue;
+    for (const li of el.querySelectorAll('li[itemscope]')) {
+      const titulo = dato(li, 'item_title'), precioVenta = euros(dato(li, 'item_price'));
+      if (!titulo) continue;
+      const a = arts.find(x => x.titulo === titulo && !usados.has(x));
+      if (a) usados.add(a);
+      // Dos prendas iguales vendidas el mismo día al mismo precio son dos ventas: el contador las distingue.
+      const base = `v|${fechaVenta}|${titulo}|${precioVenta}`, n = repes[base] = (repes[base] || 0) + 1;
+      vendidas.push({
+        titulo, marca: a?.marca || marcaDe(titulo), categoria: categoriaDe(titulo), talla: a?.talla || tallaDe(titulo),
+        grado: a?.grado || '', coste: 0, precio: precioVenta, fechaCompra: a?.fecha && a.fecha <= fechaVenta ? a.fecha : fechaVenta,
+        estado: 'vendida', precioVenta, fechaVenta, clave: n > 1 ? `${base}|${n}` : base,
+      });
+    }
+  }
+  const enVenta = arts.filter(a => a.enVenta && !usados.has(a)).map(a => ({
+    titulo: a.titulo, marca: a.marca || marcaDe(a.titulo), categoria: categoriaDe(a.titulo), talla: a.talla || tallaDe(a.titulo),
+    grado: a.grado, coste: 0, precio: a.precio, fechaCompra: a.fecha || hoy(), estado: 'stock', clave: 'l|' + (a.vid || a.titulo),
+  }));
+  return [...vendidas, ...enVenta];
+}
+
+// Añade sin duplicar: lo ya importado se reconoce por su clave, y lo que estaba en venta y ahora sale vendido se actualiza.
+function fusionarVinted(prendas, nuevas) {
+  const r = { vendidas: 0, enVenta: 0, actualizadas: 0, yaEstaban: 0 };
+  const claves = new Set(prendas.map(p => p.clave).filter(Boolean));
+  for (const n of nuevas) {
+    if (claves.has(n.clave)) { r.yaEstaban++; continue; }
+    const previa = n.estado === 'vendida' && prendas.find(p => p.estado !== 'vendida' && p.titulo === n.titulo);
+    if (previa) { Object.assign(previa, { estado: 'vendida', precioVenta: n.precioVenta, fechaVenta: n.fechaVenta, clave: n.clave }); r.actualizadas++; }
+    else { prendas.push({ id: 'vinted-' + Math.random().toString(36).slice(2, 10), ...n }); r[n.estado === 'vendida' ? 'vendidas' : 'enVenta']++; }
+    claves.add(n.clave);
+  }
+  return r;
+}
+
 // ---------- Navegación ----------
 const VISTAS = [
   ['escaparate', 'Escaparate'],
@@ -276,7 +373,7 @@ function tarjeta(p, i) {
     ? `<span>Vendida ${fechaCorta(p.fechaVenta)}</span><span class="mas">${p.precioVenta >= p.coste ? '+' : ''}${eur(p.precioVenta - p.coste)}</span>`
     : `<span>Coste ${eur(p.coste)}</span><span>${dias(p.fechaCompra, hoy())} d</span>`;
   return `<button class="prenda" data-id="${p.id}" style="--i:${Math.min(i, 12)}">
-    <div class="foto">${foto}<span class="etiqueta grado g-${esc(p.grado)}">Grado ${esc(p.grado)}</span>
+    <div class="foto">${foto}${p.grado ? `<span class="etiqueta grado g-${esc(p.grado)}">Grado ${esc(p.grado)}</span>` : ''}
       ${vendida ? '<span class="etiqueta vendida">Vendida</span>' : ''}</div>
     <div class="info"><div class="precio">${eur(vendida ? p.precioVenta : p.precio)}</div>
       <div class="meta marca">${esc(p.marca)}</div><div class="meta">${esc(p.categoria)} · Talla ${esc(p.talla)}</div>
@@ -291,7 +388,7 @@ function rejilla() {
   const lista = db.prendas
     .filter(p => filtro === 'todas' || (filtro === 'stock' ? p.estado !== 'vendida' : p.estado === 'vendida'))
     .filter(p => !marcaFiltro || p.marca === marcaFiltro)
-    .filter(p => !q || `${p.marca} ${p.categoria} ${p.talla}`.toLowerCase().includes(q))
+    .filter(p => !q || `${p.marca} ${p.categoria} ${p.talla} ${p.titulo || ''}`.toLowerCase().includes(q))
     .sort((a, b) => (b.fechaVenta || b.fechaCompra).localeCompare(a.fechaVenta || a.fechaCompra));
   if (lista.length) return `<div class="rejilla">${lista.map((p, i) => tarjeta(p, i)).join('')}</div>`;
   return db.prendas.length
@@ -515,6 +612,7 @@ function numeros() {
       <div class="fila">
         <button class="boton" data-accion="exportar">Exportar copia</button>
         <label class="boton sec" style="margin:0">Importar copia<input type="file" id="fImport" accept=".json" hidden></label>
+        <label class="boton sec" style="margin:0">Importar de Vinted<input type="file" id="fVinted" accept=".zip,.html,.htm" multiple hidden></label>
         <button class="boton sec" data-accion="demo">Cargar datos de prueba</button>
         <button class="boton peligro" data-accion="borrarTodo">Borrar todo</button>
       </div>
@@ -532,6 +630,23 @@ document.getElementById('vista').addEventListener('change', e => {
       if (!confirm(`Se sustituirán tus datos por los ${d.prendas.length} de la copia. ¿Seguir?`)) return;
       db = d; guardar(); pintar();
     }).catch(err => alert('No se pudo importar: ' + err.message));
+  }
+  if (e.target.id === 'fVinted' && e.target.files.length) {
+    const files = [...e.target.files]; e.target.value = '';
+    (async () => {
+      const datos = {};
+      for (const f of files) {
+        if (/\.zip$/i.test(f.name)) Object.assign(datos, await leerZip(f, VINTED));
+        else { const h = await f.text(), t = tipoVinted(h); if (t) datos[t] = h; }
+      }
+      if (!datos.orders && !datos.listings) throw new Error('no hay ventas ni artículos. Sube el zip que manda Vinted tal cual.');
+      const r = fusionarVinted(db.prendas, leerVinted(datos));
+      guardar(); pintar();
+      alert(`Importado de Vinted: ${r.vendidas} ventas y ${r.enVenta} prendas en venta nuevas` +
+        (r.actualizadas ? `; ${r.actualizadas} que estaban en venta pasan a vendidas` : '') +
+        (r.yaEstaban ? `. ${r.yaEstaban} ya estaban y no se han duplicado` : '') +
+        '.\n\nVinted no dice lo que te costó cada prenda: entra a 0 €. Ponlo en cada una para que el margen salga bien.');
+    })().catch(err => alert('No se pudo importar de Vinted: ' + err.message));
   }
 });
 
@@ -602,8 +717,19 @@ if (location.hash === '#test') {
   ok(mayo.length === 1 && mayo[0].precioVenta === 20, 'periodo: solo entran las ventas entre las dos fechas, ambas incluidas');
   const csv = csvVentas(mayo).split('\r\n');
   ok(csv.length === 3 && csv[1].includes('20,00') && csv[2].startsWith('TOTAL;1 ventas'), 'CSV: cabecera, fila con coma decimal y total');
+  const pedido = (vend, est, t) => `<div class="cell" itemscope><span itemprop="order_purchased">2026-05-02 10:00:00 +0200</span>
+    <span itemprop="status">${est}</span><span itemprop="seller">${vend}</span><ul><li itemscope><span itemprop="item_title">${t}</span>: <span itemprop="item_price">15.0 EUR</span></li></ul></div>`;
+  const anuncio = t => `<div class="cell" itemscope><div itemprop="title">${t}</div><span itemprop="brand">Carhartt</span><span itemprop="size">M</span>
+    <span itemprop="status">Bueno</span><span itemprop="created_at">2026-04-01 10:00:00 +0200</span><span itemprop="order_value">20.0 EUR</span></div>`;
+  const vin = leerVinted({ orders: [pedido('yo', 'Pedido finalizado', 'Sudadera Carhartt Talla M'), pedido('yo', 'Pedido finalizado', 'Sudadera Carhartt Talla M'),
+      pedido('yo', 'Cancelado', 'Polo X'), pedido('otro', 'Pedido finalizado', 'Lo que compré')].join(''),
+    listings: anuncio('Sudadera Carhartt Talla M') + anuncio('Camisa Carhartt Size L') });
+  ok(vin.length === 3 && vin.filter(p => p.estado === 'vendida').length === 2 && vin[0].fechaCompra === '2026-04-01' && vin[0].grado === 'B' && vin[2].estado === 'stock',
+    'Vinted: dos ventas iguales cuentan dos, fuera canceladas y compras a otros, y lo vendido no queda en venta');
+  const base = []; fusionarVinted(base, vin);
+  ok(fusionarVinted(base, leerVinted({ orders: pedido('yo', 'Pedido finalizado', 'Sudadera Carhartt Talla M') })).yaEstaban === 1 && base.length === 3, 'Vinted: reimportar no duplica');
   document.title = 'OK';
-  document.body.insertAdjacentHTML('afterbegin', '<p style="background:#e3f5ea;padding:8px 16px;margin:0">Autoprueba OK: 9 comprobaciones</p>');
+  document.body.insertAdjacentHTML('afterbegin', '<p style="background:#e3f5ea;padding:8px 16px;margin:0">Autoprueba OK: 11 comprobaciones</p>');
 }
 
 document.getElementById('logo').innerHTML = svg(SILUETAS.Otra);
